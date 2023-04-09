@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc.TagHelpers.Cache;
 
 namespace Flavoury.Controllers
 {
-    [Route("[action]")]
     public class AccountController: ControllerBase
     {
         private readonly UserManager<User> _userManager;
@@ -18,7 +17,7 @@ namespace Flavoury.Controllers
             _signInManager = signInManager;
         }
         
-        [HttpPost("")]
+        [HttpPost("[action]")]
         public async Task<IActionResult> Register(RegisterViewModel registerViewModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -35,7 +34,7 @@ namespace Flavoury.Controllers
             return Ok();
         }
 
-        [HttpPost("")]
+        [HttpPost("[action]")]
         public async Task<IActionResult> Login(LoginViewModel loginViewModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState.Values);
@@ -49,14 +48,14 @@ namespace Flavoury.Controllers
             return result.Succeeded ? Ok() : BadRequest();
         }
 
-        [HttpPost("")]
+        [HttpPost("[action]")]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
             return Ok();
         }
 
-        [HttpPut("")]
+        [HttpPut("[action]")]
         public async Task<IActionResult> Edit(EditUserViewModel editUserViewModel)
         {
             if (!ModelState.IsValid) 
@@ -73,13 +72,8 @@ namespace Flavoury.Controllers
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
                 return Ok(editUserViewModel);
-
+            
             return BadRequest();
-        }
-
-        [HttpGet("")]
-        public async Task<IActionResult> Account(int id)
-        {
 
         }
     }

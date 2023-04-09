@@ -95,6 +95,7 @@ namespace Flavoury.Controllers
             if (!authResult.Succeeded)
                 return Forbid();
 
+            // todo: сделать проверку на то, что это рецепт, который пользователь может менять, а не чужой
             if (recipe == null)
                 return NotFound($"Рецепт с id {updateRecipeViewModel.Id} не найден");
 
