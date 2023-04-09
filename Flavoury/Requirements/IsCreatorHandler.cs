@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Flavoury.Requirements
 {
-    public class IsCreatorHandler: AuthorizationHandler<IsCreatorRequirement, Recipe>
+    public class IsCreatorHandler : AuthorizationHandler<IsCreatorRequirement, Recipe>
     {
         private readonly UserManager<User> _userManager;
 
@@ -14,8 +14,8 @@ namespace Flavoury.Requirements
         }
 
         protected override async Task HandleRequirementAsync(
-            AuthorizationHandlerContext context, 
-            IsCreatorRequirement requirement, 
+            AuthorizationHandlerContext context,
+            IsCreatorRequirement requirement,
             Recipe resource)
         {
             var user = await _userManager.GetUserAsync(context.User);
@@ -24,5 +24,9 @@ namespace Flavoury.Requirements
             if (resource.UserId == user.Id)
                 context.Succeed(requirement);
         }
+    }
+
+    public class IsCreatorRequirement : IAuthorizationRequirement
+    {
     }
 }

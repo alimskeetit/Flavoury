@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
-using Entities.Models;
+using Flavoury.Filters;
+using Flavoury.Filters.Exist;
 using Flavoury.Services;
 using Flavoury.ViewModels.Ingredient;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+
 
 namespace Flavoury.Controllers;
 
@@ -20,25 +22,35 @@ public class IngredientController : ControllerBase
         _mapper = mapper;
         _recipeService = recipeService;
     }
-
+    
     [HttpGet("[action]/{recipeId}")]
+    [RecipeExists(id: "recipeId")]
     public async Task<IActionResult> Get(int recipeId)
     {
         var recipe = await _recipeService.GetAsync(recipeId);
         
-        return recipe == null ? 
-            NotFound($"Рецепт с id {recipeId} не найден") 
-            : Ok(_mapper.Map<ICollection<IngredientViewModel>>(recipe.Ingredients));
+        return Ok(_mapper.Map<ICollection<IngredientViewModel>>(recipe!.Ingredients));
     }
 
-    [HttpPost("[action]")]
+    //todo: получить update view может только создатель или админ
+    [Authorize]
+    [HttpPut("[action]/{id}")]
+    [IngredientExists]
+    public async Task<IActionResult> Update(int id)
+    {
+        var ingredient = await _ingredientService.GetAsync(id);
+        var updateIngredient = _mapper.Map<UpdateIngredientViewModel>(ingredient);
+        
+        return Ok(updateIngredient);
+    }
+
+    //todo: изменять может только создатель или админ
+    [Authorize]
+    [HttpPut("[action]")]
     public async Task<IActionResult> Update([FromBody] UpdateIngredientViewModel updateIngredientViewModel)
     {
         var ingredient = await _ingredientService.GetAsync(updateIngredientViewModel.Id);
-        
-        if (ingredient == null) 
-            return NotFound($"Ингредиент с id {updateIngredientViewModel.Id} не найден");
-        
+
         _mapper.Map(updateIngredientViewModel, ingredient);
 
         await _ingredientService.UpdateAsync(ingredient);
@@ -46,16 +58,12 @@ public class IngredientController : ControllerBase
         return Ok(updateIngredientViewModel);
     }
 
-    [HttpDelete("[action]/{id}")]
+    //todo: удалять может только создатель и админ
+    [HttpDelete("[action]/{recipeId}")]
+    [IngredientExists]
     public async Task<IActionResult> Delete(int id)
     {
-        var ingredient = await _ingredientService.GetAsync(id);
-
-        if (ingredient == null)
-            return NotFound($"Ингредиент с id {id} не найден");
-
         await _ingredientService.DeleteAsync(id);
-
         return Ok("Ингредиент удалён");
     }
 }

@@ -21,5 +21,7 @@ namespace Flavoury.Services
                 .Include(recipe => recipe.Ingredients)
                 .Include(recipe => recipe.Tags)
                 .FirstOrDefaultAsync(recipe => recipe.Id == id);
+
+        public async Task<bool> DoesRecipeExistAsync(int id) => await GetAsync(id) != null;
     }
 }

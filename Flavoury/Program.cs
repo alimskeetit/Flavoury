@@ -1,6 +1,7 @@
 using Entities;
 using Entities.Models;
 using Flavoury.AutoMapper;
+using Flavoury.Filters.Exist;
 using Flavoury.Requirements;
 using Flavoury.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
+builder.Services.AddTransient<RecipeExistsAttribute>();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -24,18 +27,9 @@ builder.Services.AddDbContext<AppDbContext>(optionsAction: options =>
     options.UseSqlServer(connectionString, b => b.MigrationsAssembly("Flavoury"));
     options.EnableSensitiveDataLogging();
 });
+
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
-
-builder.Services.AddScoped<IAuthorizationHandler, IsCreatorHandler>();
-
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("CanManageRecipe", policybuilder =>
-    {
-        policybuilder.AddRequirements(new IsCreatorRequirement());
-    });
-});
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
@@ -48,15 +42,32 @@ builder.Services.Configure<IdentityOptions>(options =>
 
 });
 
-// Добавляем сервис
+// Авторизация
+builder.Services.AddAuthorization(options =>
+{
+    //Политика
+    options.AddPolicy("CanManageRecipe", policybuilder =>
+    {
+        policybuilder.AddRequirements(new IsCreatorRequirement());
+    });
+});
+builder.Services.AddScoped<IAuthorizationHandler, IsCreatorHandler>();
+
+// Добавляем сервисы
 builder.Services.AddScoped<RecipeService>();
 builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<TagService>();
-
+builder.Services.AddTransient<DataSeeder>();
 builder.Services.AddAutoMapper(typeof(AppMappingProfile));
 
 
 var app = builder.Build();
+//var scopedFactory = app.Services.GetService<IServiceScopeFactory>();
+//using (var scope = scopedFactory!.CreateScope())
+//{
+//    var service = scope.ServiceProvider.GetService<DataSeeder>();
+//    await service!.SeedAsync();
+//}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -73,3 +84,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+

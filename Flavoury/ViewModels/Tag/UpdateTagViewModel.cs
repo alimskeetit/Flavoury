@@ -1,4 +1,4 @@
-﻿namespace Flavoury.ViewModels.Recipe
+﻿namespace Flavoury.ViewModels.Tag
 {
     public class UpdateTagViewModel
     {

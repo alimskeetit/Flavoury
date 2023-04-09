@@ -1,7 +1,8 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using Entities.Models;
-using Flavoury.Requirements;
+using Flavoury.Filters;
+using Flavoury.Filters.Exist;
 using Flavoury.Services;
 using Flavoury.ViewModels.Recipe;
 using Microsoft.AspNetCore.Authorization;
@@ -35,7 +36,7 @@ namespace Flavoury.Controllers
             //recipe.Tags.Clear();
 
             recipe.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-
+            recipe.Tags.Clear();
             //Добавляем в тэги рецепта только те тэги, которые существуют в БД
             foreach (var tag in createRecipeViewModel.Tags)
             {
@@ -60,26 +61,20 @@ namespace Flavoury.Controllers
             return Ok(recipes);
         }
 
-
-
         [HttpGet("[action]/{id}")]
+        [RecipeExists]
         public async Task<IActionResult> Get(int id)
         {
             var recipe = await _recipeService.GetAsync(id);
-            
-            if (recipe == null)
-                return NotFound("Рецепт не найден");
 
             return Ok(recipe);
         }
 
         [HttpGet("[action]/{id}")]
+        [RecipeExists]
         public async Task<IActionResult> Update(int id)
         {
             var recipe = await _recipeService.GetAsync(id);
-            
-            if (recipe == null)
-                return NotFound($"Рецепт с id {id} не найден");
 
             var updateRecipe = _mapper.Map<UpdateRecipeViewModel>(recipe);
 
@@ -125,12 +120,18 @@ namespace Flavoury.Controllers
         }
 
         [HttpDelete("[action]/{id}")]
+        [RecipeExists]
         public async Task<IActionResult> Delete(int id)
         {
             var recipe = await _recipeService.GetAsync(id);
 
-            if (recipe == null)
-                return NotFound($"Рецепт с id {id} не найден");
+            var authResult = await _authorizationService.AuthorizeAsync(
+                user: User,
+                resource: recipe,
+                policyName: "CanManageRecipe");
+
+            if (!authResult.Succeeded)
+                return Forbid();
 
             await _recipeService.DeleteAsync(recipe => recipe.Id == id);
 
