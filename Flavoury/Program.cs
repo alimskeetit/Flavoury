@@ -10,13 +10,15 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Create services to the container.
-
 builder.Services.AddControllers();
+builder.Services.AddScoped<RecipeService>();
+builder.Services.AddScoped<IngredientService>();
+builder.Services.AddScoped<TagService>();
+builder.Services.AddTransient<DataSeeder>();
+builder.Services.AddAutoMapper(typeof(AppMappingProfile));
+//builder.Services.AddScoped<RecipeExistsAttribute>();
 
-builder.Services.AddTransient<RecipeExistsAttribute>();
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+//Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -42,7 +44,6 @@ builder.Services.Configure<IdentityOptions>(options =>
 
 });
 
-// Авторизация
 builder.Services.AddAuthorization(options =>
 {
     //Политика
@@ -53,12 +54,6 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddScoped<IAuthorizationHandler, IsCreatorHandler>();
 
-// Добавляем сервисы
-builder.Services.AddScoped<RecipeService>();
-builder.Services.AddScoped<IngredientService>();
-builder.Services.AddScoped<TagService>();
-builder.Services.AddTransient<DataSeeder>();
-builder.Services.AddAutoMapper(typeof(AppMappingProfile));
 
 
 var app = builder.Build();
@@ -69,7 +64,6 @@ var app = builder.Build();
 //    await service!.SeedAsync();
 //}
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -84,4 +78,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-

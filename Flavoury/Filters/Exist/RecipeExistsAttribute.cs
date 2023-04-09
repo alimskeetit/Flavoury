@@ -6,7 +6,7 @@ namespace Flavoury.Filters.Exist
 {
     public class RecipeExistsAttribute : Attribute, IActionFilter
     {
-        readonly string _id;
+        private readonly string _id;
 
         public RecipeExistsAttribute(string id = "id")
         {
@@ -17,7 +17,18 @@ namespace Flavoury.Filters.Exist
         {
             var service = (RecipeService)context.HttpContext
                 .RequestServices.GetService(typeof(RecipeService))!;
-            var recipeId = (int)context.ActionArguments[_id]!;
+
+            int recipeId = 0;
+
+            if (_id.Contains('.'))
+            {
+                var properties = _id.Split('.');
+                var obj = context.ActionArguments[properties[0]];
+                if (obj!.GetType().GetProperty(properties[1]) != null)
+                    recipeId = (int) obj.GetType().GetProperty(properties[1])!.GetValue(obj)!;
+            }
+            else
+                recipeId = (int) context.ActionArguments[_id]!;
 
             if (!service.DoesRecipeExistAsync(recipeId).GetAwaiter().GetResult())
                 context.Result = new NotFoundObjectResult($"Рецепт с id {recipeId} не найден");

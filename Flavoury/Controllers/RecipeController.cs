@@ -70,6 +70,7 @@ namespace Flavoury.Controllers
             return Ok(recipe);
         }
 
+        [Authorize]
         [HttpGet("[action]/{id}")]
         [RecipeExists]
         public async Task<IActionResult> Update(int id)
@@ -83,24 +84,14 @@ namespace Flavoury.Controllers
 
         [Authorize]
         [HttpPut("[action]")]
+        [RecipeExists("updateRecipeViewModel.Id")]
+        [CanManageRecipe]
         public async Task<IActionResult> Update([FromBody] UpdateRecipeViewModel updateRecipeViewModel)
         {
             var recipe = await _recipeService.GetAsync(updateRecipeViewModel.Id);
-
-            var authResult = await _authorizationService.AuthorizeAsync(
-                user: User,
-                resource: recipe,
-                policyName: "CanManageRecipe");
-
-            if (!authResult.Succeeded)
-                return Forbid();
-
-            // todo: сделать проверку на то, что это рецепт, который пользователь может менять, а не чужой
-            if (recipe == null)
-                return NotFound($"Рецепт с id {updateRecipeViewModel.Id} не найден");
-
             _mapper.Map(updateRecipeViewModel, recipe);
-            recipe.Tags.Clear();
+            // Очищаем тэги изначального рецепта
+            recipe!.Tags.Clear();
             foreach (var tag in updateRecipeViewModel.Tags)
             {
                 var result = await _tagService.GetByNameAsync(tag.Name, asTracking: true);
@@ -112,15 +103,14 @@ namespace Flavoury.Controllers
                             updateRecipeViewModel
                         });
                 recipe.Tags.Add(result);
-
             }
-
             await _recipeService.UpdateAsync(recipe);
             return Ok(recipe);
         }
 
         [HttpDelete("[action]/{id}")]
         [RecipeExists]
+        [CanManageRecipe]
         public async Task<IActionResult> Delete(int id)
         {
             var recipe = await _recipeService.GetAsync(id);

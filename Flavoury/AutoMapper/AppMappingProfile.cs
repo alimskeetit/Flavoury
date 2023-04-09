@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Entities.Models;
+using Flavoury.ViewModels.Account;
 using Flavoury.ViewModels.Ingredient;
 using Flavoury.ViewModels.Recipe;
 using Flavoury.ViewModels.Tag;
@@ -24,6 +25,7 @@ namespace Flavoury.AutoMapper
                 .ForMember(dest => dest.Tags, opt => opt.Ignore())
                 .ReverseMap();
             CreateMap<TagViewModel, Tag>().ReverseMap();
+            CreateMap<UserViewModel, User>().ReverseMap();
         }
     }
 }

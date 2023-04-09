@@ -1,11 +1,15 @@
-﻿using Entities.Models;
+﻿using System.Net.WebSockets;
+using Entities.Models;
+using Flavoury.Filters.Exist;
 using Flavoury.ViewModels.Account;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.TagHelpers.Cache;
 
 namespace Flavoury.Controllers
 {
+    [Route("[action]")]
     public class AccountController: ControllerBase
     {
         private readonly UserManager<User> _userManager;
@@ -17,7 +21,7 @@ namespace Flavoury.Controllers
             _signInManager = signInManager;
         }
         
-        [HttpPost("[action]")]
+        [HttpPost("")]
         public async Task<IActionResult> Register(RegisterViewModel registerViewModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -34,7 +38,7 @@ namespace Flavoury.Controllers
             return Ok();
         }
 
-        [HttpPost("[action]")]
+        [HttpPost("")]
         public async Task<IActionResult> Login(LoginViewModel loginViewModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState.Values);
@@ -48,14 +52,14 @@ namespace Flavoury.Controllers
             return result.Succeeded ? Ok() : BadRequest();
         }
 
-        [HttpPost("[action]")]
+        [HttpPost("")]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
             return Ok();
         }
 
-        [HttpPut("[action]")]
+        [HttpPut("")]
         public async Task<IActionResult> Edit(EditUserViewModel editUserViewModel)
         {
             if (!ModelState.IsValid) 
@@ -72,9 +76,25 @@ namespace Flavoury.Controllers
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
                 return Ok(editUserViewModel);
-            
-            return BadRequest();
 
+            return BadRequest();
+        }
+
+        [HttpGet("")]
+        [UserExists]
+        public async Task<IActionResult> Account([FromQuery] string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            var userViewModel = new UserViewModel { Email = user.Email };
+            return Ok(userViewModel);
+        }
+
+        [Authorize]
+        [HttpGet("")]
+        public async Task<IActionResult> About()
+        {
+            var userViewModel = new UserViewModel { Email = User.Identity.Name };
+            return Ok(userViewModel);
         }
     }
 }
