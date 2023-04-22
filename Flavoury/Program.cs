@@ -1,7 +1,6 @@
 using Entities;
 using Entities.Models;
 using Flavoury.AutoMapper;
-using Flavoury.Filters.Exist;
 using Flavoury.Requirements;
 using Flavoury.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -16,8 +15,6 @@ builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddTransient<DataSeeder>();
 builder.Services.AddAutoMapper(typeof(AppMappingProfile));
-//builder.Services.AddScoped<RecipeExistsAttribute>();
-
 //Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -51,18 +48,31 @@ builder.Services.AddAuthorization(options =>
     {
         policybuilder.AddRequirements(new IsCreatorRequirement());
     });
+    options.AddPolicy("CanManageAccount", policybuilder =>
+    {
+        policybuilder.AddRequirements(new IsUser());
+    });
+    options.AddPolicy("CanManageIngredient", policybuilder =>
+    {
+        policybuilder.AddRequirements(new IsCreatorOfIngredient());
+    });
 });
+
 builder.Services.AddScoped<IAuthorizationHandler, IsCreatorHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, IsUserHandler>();
 
-
+async Task SeedData(IHost app)
+{
+    var scopedFactory = app.Services.GetService<IServiceScopeFactory>();
+    using (var scope = scopedFactory.CreateScope())
+    {
+        var service = scope.ServiceProvider.GetService<DataSeeder>();
+       await service.SeedAsync();
+    }
+}
 
 var app = builder.Build();
-//var scopedFactory = app.Services.GetService<IServiceScopeFactory>();
-//using (var scope = scopedFactory!.CreateScope())
-//{
-//    var service = scope.ServiceProvider.GetService<DataSeeder>();
-//    await service!.SeedAsync();
-//}
+await SeedData(app);
 
 if (app.Environment.IsDevelopment())
 {

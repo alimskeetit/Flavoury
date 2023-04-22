@@ -16,6 +16,7 @@ namespace Entities
     {
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+
         public DataSeeder(UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
         {
             _userManager = userManager;
@@ -32,15 +33,9 @@ namespace Entities
                     await _roleManager.CreateAsync(new IdentityRole(role));
             }
 
-            var admin1 = new User { Email = "alimskiy@mail.com", UserName = "alimskiy@mail.com" };
-            var result = await _userManager.CreateAsync(admin1, password: "123");
-
-            if (result.Succeeded)
-            {
+            var admin1 = await _userManager.FindByEmailAsync("alimskiy@mail.ru");
+            if (admin1 != null)
                 await _userManager.AddToRoleAsync(admin1, "admin");
-            }
-
-
         }
     }
 }

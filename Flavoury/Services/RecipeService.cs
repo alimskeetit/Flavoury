@@ -10,18 +10,32 @@ namespace Flavoury.Services
         {
         }
 
-        public async Task<ICollection<Recipe>> GetAllAsync() 
-            => await _context.Set<Recipe>()
-                .Include(recipe => recipe.Ingredients)
-                .Include(recipe => recipe.Tags)
-                .ToListAsync();
+        public async Task<ICollection<Recipe>> GetAllAsync(bool asTracking = false)
+            => asTracking ?
+                await _context.Set<Recipe>()
+                    .Include(recipe => recipe.Ingredients)
+                    .Include(recipe => recipe.Tags)
+                    .AsTracking()
+                    .ToListAsync() :
+                await _context.Set<Recipe>()
+                    .Include(recipe => recipe.Ingredients)
+                    .Include(recipe => recipe.Tags)
+                    .AsNoTracking()
+                    .ToListAsync();
 
-        public async Task<Recipe?> GetAsync(int id) 
-            => await _context.Set<Recipe>()
-                .Include(recipe => recipe.Ingredients)
-                .Include(recipe => recipe.Tags)
-                .FirstOrDefaultAsync(recipe => recipe.Id == id);
+        public async Task<Recipe?> GetAsync(int id, bool asTracking = false)
+            => asTracking
+                ? await _context.Set<Recipe>()
+                    .Include(recipe => recipe.Ingredients)
+                    .Include(recipe => recipe.Tags)
+                    .AsTracking()
+                    .FirstOrDefaultAsync(recipe => recipe.Id == id)
+                : await _context.Set<Recipe>()
+                    .Include(recipe => recipe.Ingredients)
+                    .Include(recipe => recipe.Tags)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(recipe => recipe.Id == id);
 
-        public async Task<bool> DoesRecipeExistAsync(int id) => await GetAsync(id) != null;
+        public async Task<bool> DoesRecipeExistAsync(int id) => await GetAsync(id, asTracking: false) != null;
     }
 }

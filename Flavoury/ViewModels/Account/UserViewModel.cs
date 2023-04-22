@@ -5,7 +5,8 @@ namespace Flavoury.ViewModels.Account
     public class UserViewModel
     {
         [Required]
-        [Display(Name = "Email")]
-        public string Email { get; set; }
+        public string UserName { get; set; }
+
+        public IList<string> Role { get; set; }
     }
 }

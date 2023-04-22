@@ -12,10 +12,7 @@
 
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
         
-        public string UserId { get; set; }
-
-        //[Newtonsoft.Json.JsonIgnore]
-        //[System.Text.Json.Serialization.JsonIgnore]
-        //public ICollection<RecipeTag> RecipeTags { get; set; } = new List<RecipeTag>();
+        public string UserId { get; set; } = null!;
+        public User User { get; set; } = null!;
     }
 }

@@ -64,9 +64,11 @@ namespace Flavoury.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Recipes");
                 });
@@ -86,18 +88,6 @@ namespace Flavoury.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tag");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Огуречный"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Name = "Помидрный"
-                        });
                 });
 
             modelBuilder.Entity("Entities.Models.User", b =>
@@ -112,7 +102,7 @@ namespace Flavoury.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Email")
+                    b.Property<string>("Login")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -322,6 +312,17 @@ namespace Flavoury.Migrations
                         .IsRequired();
 
                     b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Entities.Models.Recipe", b =>
+                {
+                    b.HasOne("Entities.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

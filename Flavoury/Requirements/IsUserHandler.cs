@@ -1,30 +1,34 @@
 ﻿using Entities.Models;
+using Flavoury.ViewModels.Account;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 
 namespace Flavoury.Requirements
 {
-    public class IsCreatorHandler : AuthorizationHandler<IsCreatorRequirement, Recipe>
+    public class IsUserHandler: AuthorizationHandler<IsUser, string>
     {
         private readonly UserManager<User> _userManager;
 
-        public IsCreatorHandler(UserManager<User> userManager)
+        public IsUserHandler(UserManager<User> userManager)
         {
             _userManager = userManager;
         }
 
         protected override async Task HandleRequirementAsync(
             AuthorizationHandlerContext context,
-            IsCreatorRequirement requirement,
-            Recipe resource)
+            IsUser requirement,
+            string id)
         {
             var user = await _userManager.GetUserAsync(context.User);
-            if (resource.UserId == user!.Id || await _userManager.IsInRoleAsync(user, "admin"))
+            if (id == user!.Id)
                 context.Succeed(requirement);
         }
     }
 
-    public class IsCreatorRequirement : IAuthorizationRequirement
+    public class IsUser : IAuthorizationRequirement
     {
+
     }
+
 }
+

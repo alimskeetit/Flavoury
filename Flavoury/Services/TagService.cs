@@ -11,7 +11,7 @@ namespace Flavoury.Services
 
         }
 
-        public async Task<Tag?> GetAsync(int id) => await GetAsync(tag => tag.Id == id);
+        public async Task<Tag?> GetAsync(int id, bool asTracking = false) => await GetAsync(tag => tag.Id == id, asTracking);
 
         public async Task<Tag?> GetByNameAsync(string name, bool asTracking = false)
         {

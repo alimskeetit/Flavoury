@@ -1,14 +1,16 @@
 ﻿using AutoMapper;
 using Entities.Models;
+using Flavoury.Filters.Exist;
 using Flavoury.Services;
 using Flavoury.ViewModels.Tag;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing.Template;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Flavoury.Controllers
 {
-    [Route("[controller]")]
+    [Route("[controller]/[action]")]
     public class TagController: ControllerBase
     {
         private readonly TagService _tagService;
@@ -20,15 +22,15 @@ namespace Flavoury.Controllers
             _mapper = mapper;
         }
 
-        [HttpPost("[action]")]
+        [Authorize(Roles = "admin")]
+        [HttpPost]
         public async Task Create([FromBody] CreateTagViewModel createTagViewModel)
         {
             var tag = _mapper.Map<Tag>(createTagViewModel);
-            
             await _tagService.CreateAsync(tag);
         }
-        
-        [HttpGet("[action]")]
+
+        [HttpGet]
         public async Task<IActionResult> Get()
         {
             var tags = await _tagService.GetAllAsync();
@@ -39,26 +41,38 @@ namespace Flavoury.Controllers
             return Ok(tags);
         }
 
-        [HttpGet("[action]/{id}")]
+        [HttpGet("{id:int}")]
+        [Exist<Tag>]
         public async Task<IActionResult> Get(int id)
         {
             var tag = await _tagService.GetAsync(id);
-        
-            return tag == null ? 
-                NotFound($"Тэг c id {id} не найден") 
-                : Ok(_mapper.Map<TagViewModel>(tag));
+            return Ok(_mapper.Map<TagViewModel>(tag));
         }
 
-        [HttpDelete("[action]/{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpGet("{id:int}")]
+        [Exist<Tag>]
+        public async Task<IActionResult> Update(int id)
         {
             var tag = await _tagService.GetAsync(id);
+            return Ok(_mapper.Map<UpdateTagViewModel>(tag));
+        }
 
-            if (tag == null)
-                return NotFound($"Тэг с id {id} не найден");
+        [HttpPut]
+        [Exist<Tag>("updateTagViewModel.Id")]
+        public async Task<IActionResult> Update([FromBody] UpdateTagViewModel updateTagViewModel)
+        {
+            var tag = await _tagService.GetAsync(updateTagViewModel.Id, asTracking: true);
+            _mapper.Map(updateTagViewModel, tag);
+            await _tagService.UpdateAsync(tag!);
+            return Ok(updateTagViewModel);
+        }
 
+        [Authorize(Roles = "admin")]
+        [HttpDelete("{id:int}")]
+        [Exist<Tag>]
+        public async Task<IActionResult> Delete(int id)
+        {
             await _tagService.DeleteAsync(id);
-
             return Ok();
         }
     }

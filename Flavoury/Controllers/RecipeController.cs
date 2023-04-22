@@ -2,15 +2,18 @@
 using AutoMapper;
 using Entities.Models;
 using Flavoury.Filters;
+using Flavoury.Filters.CanManage;
 using Flavoury.Filters.Exist;
 using Flavoury.Services;
 using Flavoury.ViewModels.Recipe;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Flavoury.Controllers
 {
-    [Route("[controller]")]
+    [Authorize]
+    [Route("[controller]/[action]")]
     public class RecipeController : ControllerBase
     {
         private readonly RecipeService _recipeService;
@@ -18,39 +21,44 @@ namespace Flavoury.Controllers
         private readonly TagService _tagService;
         private readonly IMapper _mapper;
         private readonly IAuthorizationService _authorizationService;
+        private readonly UserManager<User> _userManager;
 
-        public RecipeController(RecipeService recipeService, IMapper mapper, IngredientService ingredientService, TagService tagService, IAuthorizationService authorizationService)
+        public RecipeController(RecipeService recipeService, IMapper mapper, IngredientService ingredientService, TagService tagService, IAuthorizationService authorizationService, UserManager<User> userManager)
         {
             _recipeService = recipeService;
             _mapper = mapper;
             _ingredientService = ingredientService;
             _tagService = tagService;
             _authorizationService = authorizationService;
+            _userManager = userManager;
         }
 
-        [Authorize]
-        [HttpPost("[action]")]
+        [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateRecipeViewModel createRecipeViewModel)
         {
             var recipe = _mapper.Map<Recipe>(createRecipeViewModel);
-            //recipe.Tags.Clear();
-
             recipe.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             recipe.Tags.Clear();
             //Добавляем в тэги рецепта только те тэги, которые существуют в БД
-            foreach (var tag in createRecipeViewModel.Tags)
+            foreach (var tagName in createRecipeViewModel.Tags.Select(tag => tag.Name))
             {
-                var result = await _tagService.GetByNameAsync(tag.Name, asTracking: true);
+                var result = await _tagService.GetByNameAsync(tagName, asTracking: true);
                 if (result == null)
-                    return BadRequest(new { error = $"Тэг с названием {tag.Name} не существует", recipeViewModel = createRecipeViewModel });
+                    return BadRequest(new
+                    {
+                        error = $"Тэг с названием {tagName} не существует",
+                        createRecipeViewModel
+                    });
                 recipe.Tags.Add(result);
             }
 
             await _recipeService.CreateAsync(recipe);
-            return Ok(recipe);
+            var recipeViewModel = _mapper.Map<RecipeViewModel>(recipe);
+            return Ok(recipeViewModel);
         }
 
-        [HttpGet("[action]")]
+        [AllowAnonymous]
+        [HttpGet]
         public async Task<IActionResult> Get()
         {
             var recipes = await _recipeService.GetAllAsync();
@@ -58,73 +66,68 @@ namespace Flavoury.Controllers
             {
                 return NotFound("Рецепты не найдены");
             }
-            return Ok(recipes);
+
+            var recipeViewModels = _mapper.Map<ICollection<RecipeViewModel>>(recipes);
+            foreach (var recipe in recipeViewModels)
+            {
+                recipe.Creator = (await _userManager.FindByIdAsync(recipe.Creator))!.UserName!;
+            }
+            return Ok(recipeViewModels);
         }
 
-        [HttpGet("[action]/{id}")]
-        [RecipeExists]
+        [AllowAnonymous]
+        [HttpGet("{id:int}")]
+        [Exist<Recipe>]
         public async Task<IActionResult> Get(int id)
         {
-            var recipe = await _recipeService.GetAsync(id);
-
-            return Ok(recipe);
+            var recipe = await _recipeService.GetAsync(id, asTracking: false);
+            var recipeViewModel = _mapper.Map<RecipeViewModel>(recipe);
+            recipeViewModel.Creator = (await _userManager.FindByIdAsync(recipeViewModel.Creator))!.UserName!;
+            return Ok(recipeViewModel);
         }
-
-        [Authorize]
-        [HttpGet("[action]/{id}")]
-        [RecipeExists]
+        
+        [HttpGet("{id:int}")]
+        [Exist<Recipe>]
+        [CanManage<Recipe>]
         public async Task<IActionResult> Update(int id)
         {
-            var recipe = await _recipeService.GetAsync(id);
-
+            var recipe = await _recipeService.GetAsync(id, asTracking: true);
             var updateRecipe = _mapper.Map<UpdateRecipeViewModel>(recipe);
-
             return Ok(updateRecipe);
         }
-
-        [Authorize]
-        [HttpPut("[action]")]
-        [RecipeExists("updateRecipeViewModel.Id")]
-        [CanManageRecipe]
+        
+        [HttpPut]
+        [Exist<Recipe>(pathToId: "updateRecipeViewModel.Id")]
+        [CanManage<Recipe>(pathToId: "updateRecipeViewModel.Id")]
+        //todo: баг: можно изменить и вставить ингредиент, который относится совсем к другому рецепту
         public async Task<IActionResult> Update([FromBody] UpdateRecipeViewModel updateRecipeViewModel)
         {
-            var recipe = await _recipeService.GetAsync(updateRecipeViewModel.Id);
+            var recipe = await _recipeService.GetAsync(updateRecipeViewModel.Id, asTracking: true);
             _mapper.Map(updateRecipeViewModel, recipe);
             // Очищаем тэги изначального рецепта
             recipe!.Tags.Clear();
-            foreach (var tag in updateRecipeViewModel.Tags)
+            foreach (var tagName in updateRecipeViewModel.Tags.Select(tagViewModel => tagViewModel.Name))
             {
-                var result = await _tagService.GetByNameAsync(tag.Name, asTracking: true);
+                var result = await _tagService.GetByNameAsync(tagName, asTracking: true);
                 if (result == null)
                     return BadRequest(
                         new
                         {
-                            error = $"Тэг с названием {tag.Name} не существует", 
+                            error = $"Тэг с названием {tagName} не существует", 
                             updateRecipeViewModel
                         });
                 recipe.Tags.Add(result);
             }
             await _recipeService.UpdateAsync(recipe);
-            return Ok(recipe);
+            return Ok(_mapper.Map<RecipeViewModel>(recipe));
         }
 
-        [HttpDelete("[action]/{id}")]
-        [RecipeExists]
-        [CanManageRecipe]
+        [HttpDelete("{id:int}")]
+        [Exist<Recipe>]
+        [CanManage<Recipe>]
         public async Task<IActionResult> Delete(int id)
         {
-            var recipe = await _recipeService.GetAsync(id);
-
-            var authResult = await _authorizationService.AuthorizeAsync(
-                user: User,
-                resource: recipe,
-                policyName: "CanManageRecipe");
-
-            if (!authResult.Succeeded)
-                return Forbid();
-
             await _recipeService.DeleteAsync(recipe => recipe.Id == id);
-
             return Ok("Рецепт удалён");
         }
     }

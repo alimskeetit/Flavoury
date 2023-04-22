@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Flavoury.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230402175935_AddUserIdAtrecipe")]
-    partial class AddUserIdAtrecipe
+    [Migration("20230411144015_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -67,9 +67,11 @@ namespace Flavoury.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Recipes");
                 });
@@ -89,18 +91,6 @@ namespace Flavoury.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tag");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Огуречный"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Name = "Помидрный"
-                        });
                 });
 
             modelBuilder.Entity("Entities.Models.User", b =>
@@ -325,6 +315,17 @@ namespace Flavoury.Migrations
                         .IsRequired();
 
                     b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Entities.Models.Recipe", b =>
+                {
+                    b.HasOne("Entities.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
